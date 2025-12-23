@@ -1,5 +1,11 @@
 # claude-code-toggle
 
+## 1.0.3
+
+### Patch Changes
+
+- eaacff2: Add guided provider setup wizard
+
 ## 1.0.2
 
 ### Patch Changes
