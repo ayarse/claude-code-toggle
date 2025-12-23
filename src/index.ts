@@ -10,7 +10,7 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { confirm, input, Separator, select } from "@inquirer/prompts";
-import type { Choice, Config } from "./types.js";
+import type { Choice, Config } from "./types";
 
 const CLAUDE_DIR = join(homedir(), ".claude");
 
