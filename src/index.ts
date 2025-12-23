@@ -119,178 +119,215 @@ function launchClaude(config: Config): void {
 }
 
 async function createNewConfig(): Promise<Config | null> {
-  const name = await input({
-    message: "Enter a name for the new configuration:",
-    validate: (value) => {
-      if (!value.trim()) {
-        return "Name cannot be empty";
-      }
-      if (!/^[\w-]+$/.test(value)) {
-        return "Name can only contain letters, numbers, hyphens, and underscores";
-      }
-      if (value === "default") {
-        return '"default" is reserved for settings.json';
-      }
-      const existingPath = join(CLAUDE_DIR, `settings.${value}.json`);
-      if (existsSync(existingPath)) {
-        return `Configuration "${value}" already exists`;
-      }
-      return true;
-    },
-  });
-
-  const configPath = join(CLAUDE_DIR, `settings.${name}.json`);
-
-  const configs = getConfigs();
-  let initialContent = "{}";
-
-  const initChoice = await select({
-    message: "Initialize from:",
-    choices: [
-      { name: "New config (guided setup)", value: "new" },
-      ...configs.map((c) => ({ name: `Copy from: ${c.name}`, value: c })),
-    ],
-    loop: false,
-  });
-
-  if (initChoice === "new") {
-    // Guided setup with template
-    const baseUrl = await input({
-      message: "Enter the API base URL:",
-      validate: (value) => (value.trim() ? true : "Base URL is required"),
-    });
-
-    const authToken = await input({
-      message: "Enter your API auth token:",
-      validate: (value) => (value.trim() ? true : "Auth token is required"),
-    });
-
-    const opusModel = await input({
-      message: "Enter the Opus model name:",
-      validate: (value) => (value.trim() ? true : "Opus model is required"),
-    });
-
-    const useSameForSonnet = await confirm({
-      message: `Use "${opusModel}" for Sonnet model as well?`,
-      default: true,
-    });
-
-    let sonnetModel = opusModel;
-    if (!useSameForSonnet) {
-      sonnetModel = await input({
-        message: "Enter the Sonnet model name:",
-        validate: (value) => (value.trim() ? true : "Sonnet model is required"),
-      });
-    }
-
-    const useSameForHaiku = await confirm({
-      message: `Use "${opusModel}" for Haiku model as well?`,
-      default: true,
-    });
-
-    let haikuModel = opusModel;
-    if (!useSameForHaiku) {
-      haikuModel = await input({
-        message: "Enter the Haiku model name:",
-        validate: (value) => (value.trim() ? true : "Haiku model is required"),
-      });
-    }
-
-    const configObject = {
-      alwaysThinkingEnabled: true,
-      env: {
-        ANTHROPIC_AUTH_TOKEN: authToken,
-        ANTHROPIC_BASE_URL: baseUrl,
-        API_TIMEOUT_MS: "3000000",
-        ANTHROPIC_DEFAULT_HAIKU_MODEL: haikuModel,
-        ANTHROPIC_DEFAULT_SONNET_MODEL: sonnetModel,
-        ANTHROPIC_DEFAULT_OPUS_MODEL: opusModel,
+  try {
+    const name = await input({
+      message: "Enter a name for the new configuration:",
+      validate: (value) => {
+        if (!value.trim()) {
+          return "Name cannot be empty";
+        }
+        if (!/^[\w-]+$/.test(value)) {
+          return "Name can only contain letters, numbers, hyphens, and underscores";
+        }
+        if (value === "default") {
+          return '"default" is reserved for settings.json';
+        }
+        const existingPath = join(CLAUDE_DIR, `settings.${value}.json`);
+        if (existsSync(existingPath)) {
+          return `Configuration "${value}" already exists`;
+        }
+        return true;
       },
-    };
+    });
 
-    initialContent = JSON.stringify(configObject, null, 2);
-  } else {
-    // Copy from existing config
-    const content = safeReadFile(initChoice.path);
-    if (content === null) {
+    const configPath = join(CLAUDE_DIR, `settings.${name}.json`);
+
+    const configs = getConfigs();
+    let initialContent = "{}";
+
+    const initChoice = await select({
+      message: "Initialize from:",
+      choices: [
+        { name: "New config (guided setup)", value: "new" },
+        ...configs.map((c) => ({ name: `Copy from: ${c.name}`, value: c })),
+        new Separator(),
+        { name: "← Back", value: "back" },
+      ],
+      loop: false,
+    });
+
+    if (initChoice === "back") {
       return null;
     }
-    initialContent = content;
+
+    if (initChoice === "new") {
+      // Guided setup with template
+      const baseUrl = await input({
+        message: "Enter the API base URL:",
+        validate: (value) => (value.trim() ? true : "Base URL is required"),
+      });
+
+      const authToken = await input({
+        message: "Enter your API auth token:",
+        validate: (value) => (value.trim() ? true : "Auth token is required"),
+      });
+
+      const opusModel = await input({
+        message: "Enter the Opus model name:",
+        validate: (value) => (value.trim() ? true : "Opus model is required"),
+      });
+
+      const useSameForSonnet = await confirm({
+        message: `Use "${opusModel}" for Sonnet model as well?`,
+        default: true,
+      });
+
+      let sonnetModel = opusModel;
+      if (!useSameForSonnet) {
+        sonnetModel = await input({
+          message: "Enter the Sonnet model name:",
+          validate: (value) =>
+            value.trim() ? true : "Sonnet model is required",
+        });
+      }
+
+      const useSameForHaiku = await confirm({
+        message: `Use "${opusModel}" for Haiku model as well?`,
+        default: true,
+      });
+
+      let haikuModel = opusModel;
+      if (!useSameForHaiku) {
+        haikuModel = await input({
+          message: "Enter the Haiku model name:",
+          validate: (value) =>
+            value.trim() ? true : "Haiku model is required",
+        });
+      }
+
+      const configObject = {
+        alwaysThinkingEnabled: true,
+        env: {
+          ANTHROPIC_AUTH_TOKEN: authToken,
+          ANTHROPIC_BASE_URL: baseUrl,
+          API_TIMEOUT_MS: "3000000",
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: haikuModel,
+          ANTHROPIC_DEFAULT_SONNET_MODEL: sonnetModel,
+          ANTHROPIC_DEFAULT_OPUS_MODEL: opusModel,
+        },
+      };
+
+      initialContent = JSON.stringify(configObject, null, 2);
+    } else {
+      // Copy from existing config
+      const content = safeReadFile(initChoice.path);
+      if (content === null) {
+        return null;
+      }
+      initialContent = content;
+    }
+
+    if (!safeWriteFile(configPath, initialContent)) {
+      return null;
+    }
+
+    console.log(`\nCreated "${name}" at ${configPath}`);
+
+    return {
+      name,
+      path: configPath,
+    };
+  } catch (error) {
+    if ((error as Error).name === "ExitPromptError") {
+      return null;
+    }
+    throw error;
   }
-
-  if (!safeWriteFile(configPath, initialContent)) {
-    return null;
-  }
-
-  console.log(`\nCreated "${name}" at ${configPath}`);
-
-  return {
-    name,
-    path: configPath,
-  };
 }
 
 async function editConfig(config: Config): Promise<void> {
-  const editors = [
-    { name: "Nano", value: "nano", available: false },
-    { name: "Vim", value: "vim", available: false },
-    { name: "VS Code", value: "code -w", available: false },
-    { name: "Cursor", value: "cursor -w", available: false },
-  ];
+  try {
+    const editors = [
+      { name: "Nano", value: "nano", available: false },
+      { name: "Vim", value: "vim", available: false },
+      { name: "VS Code", value: "code -w", available: false },
+      { name: "Cursor", value: "cursor -w", available: false },
+    ];
 
-  for (const editor of editors) {
-    const cmd = editor.value.split(" ")[0];
-    editor.available = isCommandAvailable(cmd);
+    for (const editor of editors) {
+      const cmd = editor.value.split(" ")[0];
+      editor.available = isCommandAvailable(cmd);
+    }
+
+    const availableEditors = editors.filter((e) => e.available);
+
+    if (availableEditors.length === 0) {
+      console.log("\nNo editors found. Install nano, vim, code, or cursor.");
+      return;
+    }
+
+    const editorChoice = await select({
+      message: "Choose an editor:",
+      choices: [
+        ...availableEditors.map((e) => ({
+          name: e.name,
+          value: e.value,
+        })),
+        new Separator(),
+        { name: "← Back", value: "back" },
+      ],
+      loop: false,
+    });
+
+    if (editorChoice === "back") {
+      return;
+    }
+
+    const [cmd, ...args] = editorChoice.split(" ");
+
+    console.log(`\nOpening "${config.name}" in ${cmd}...`);
+
+    return new Promise((resolve) => {
+      const child = spawn(cmd, [...args, config.path], {
+        stdio: "inherit",
+        shell: true,
+      });
+
+      child.on("close", () => {
+        console.log("Editor closed.");
+        resolve();
+      });
+
+      child.on("error", (err) => {
+        console.error(`Failed to open editor: ${err.message}`);
+        resolve();
+      });
+    });
+  } catch (error) {
+    if ((error as Error).name === "ExitPromptError") {
+      return;
+    }
+    throw error;
   }
-
-  const availableEditors = editors.filter((e) => e.available);
-
-  if (availableEditors.length === 0) {
-    console.log("\nNo editors found. Install nano, vim, code, or cursor.");
-    return;
-  }
-
-  const editorChoice = await select({
-    message: "Choose an editor:",
-    choices: availableEditors.map((e) => ({
-      name: e.name,
-      value: e.value,
-    })),
-    loop: false,
-  });
-
-  const [cmd, ...args] = editorChoice.split(" ");
-
-  console.log(`\nOpening "${config.name}" in ${cmd}...`);
-
-  return new Promise((resolve) => {
-    const child = spawn(cmd, [...args, config.path], {
-      stdio: "inherit",
-      shell: true,
-    });
-
-    child.on("close", () => {
-      console.log("Editor closed.");
-      resolve();
-    });
-
-    child.on("error", (err) => {
-      console.error(`Failed to open editor: ${err.message}`);
-      resolve();
-    });
-  });
 }
 
 async function deleteConfig(config: Config): Promise<void> {
-  const confirmed = await confirm({
-    message: `Are you sure you want to delete "${config.name}"?`,
-    default: false,
-  });
+  try {
+    const confirmed = await confirm({
+      message: `Are you sure you want to delete "${config.name}"?`,
+      default: false,
+    });
 
-  if (confirmed) {
-    if (safeDeleteFile(config.path)) {
-      console.log(`\nDeleted "${config.name}" configuration.`);
+    if (confirmed) {
+      if (safeDeleteFile(config.path)) {
+        console.log(`\nDeleted "${config.name}" configuration.`);
+      }
     }
+  } catch (error) {
+    if ((error as Error).name === "ExitPromptError") {
+      return;
+    }
+    throw error;
   }
 }
 
@@ -348,15 +385,27 @@ async function mainMenu(): Promise<void> {
         break;
 
       case "edit": {
-        const configChoice = await select({
-          message: "Select a configuration to edit:",
-          choices: configs.map((c) => ({
-            name: c.name,
-            value: c,
-          })),
-          loop: false,
-        });
-        await editConfig(configChoice);
+        try {
+          const configChoice = await select<Config | "back">({
+            message: "Select a configuration to edit:",
+            choices: [
+              ...configs.map((c) => ({
+                name: c.name,
+                value: c,
+              })),
+              new Separator(),
+              { name: "← Back", value: "back" as const },
+            ],
+            loop: false,
+          });
+          if (configChoice !== "back") {
+            await editConfig(configChoice);
+          }
+        } catch (error) {
+          if ((error as Error).name !== "ExitPromptError") {
+            throw error;
+          }
+        }
         break;
       }
 
@@ -366,15 +415,27 @@ async function mainMenu(): Promise<void> {
           console.log("\nNo configurations to delete.");
           break;
         }
-        const configChoice = await select({
-          message: "Select a configuration to delete:",
-          choices: deletableConfigs.map((c) => ({
-            name: c.name,
-            value: c,
-          })),
-          loop: false,
-        });
-        await deleteConfig(configChoice);
+        try {
+          const configChoice = await select<Config | "back">({
+            message: "Select a configuration to delete:",
+            choices: [
+              ...deletableConfigs.map((c) => ({
+                name: c.name,
+                value: c,
+              })),
+              new Separator(),
+              { name: "← Back", value: "back" as const },
+            ],
+            loop: false,
+          });
+          if (configChoice !== "back") {
+            await deleteConfig(configChoice);
+          }
+        } catch (error) {
+          if ((error as Error).name !== "ExitPromptError") {
+            throw error;
+          }
+        }
         break;
       }
     }
