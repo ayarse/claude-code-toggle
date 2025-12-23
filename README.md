@@ -1,6 +1,6 @@
 # claude-code-toggle
 
-A TUI for switching between Claude Code settings configurations.
+A tool for switching between Claude Code settings configurations. Quickly switch between different model providers like GLM, Minimax, or any custom setup.
 
 ## Install
 

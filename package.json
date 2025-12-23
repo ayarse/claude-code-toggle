@@ -1,7 +1,7 @@
 {
   "name": "claude-code-toggle",
   "version": "1.0.1",
-  "description": "TUI application to toggle Claude Code settings configurations",
+  "description": "A tool for switching between Claude Code settings configurations",
   "type": "module",
   "bin": {
     "claude-code-toggle": "./dist/index.js"
@@ -34,7 +34,6 @@
     "claude-code",
     "settings",
     "toggle",
-    "tui",
     "cli"
   ],
   "author": "Ayas Nasih",
