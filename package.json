@@ -1,6 +1,6 @@
 {
   "name": "claude-code-toggle",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A tool for switching between Claude Code settings configurations",
   "type": "module",
   "bin": {
