@@ -144,22 +144,78 @@ async function createNewConfig(): Promise<Config | null> {
   const configs = getConfigs();
   let initialContent = "{}";
 
-  if (configs.length > 0) {
-    const copyFrom = await select({
-      message: "Initialize from:",
-      choices: [
-        { name: "Empty config", value: null },
-        ...configs.map((c) => ({ name: c.name, value: c })),
-      ],
-      loop: false,
+  const initChoice = await select({
+    message: "Initialize from:",
+    choices: [
+      { name: "New config (guided setup)", value: "new" },
+      ...configs.map((c) => ({ name: `Copy from: ${c.name}`, value: c })),
+    ],
+    loop: false,
+  });
+
+  if (initChoice === "new") {
+    // Guided setup with template
+    const baseUrl = await input({
+      message: "Enter the API base URL:",
+      validate: (value) => (value.trim() ? true : "Base URL is required"),
     });
-    if (copyFrom) {
-      const content = safeReadFile(copyFrom.path);
-      if (content === null) {
-        return null;
-      }
-      initialContent = content;
+
+    const authToken = await input({
+      message: "Enter your API auth token:",
+      validate: (value) => (value.trim() ? true : "Auth token is required"),
+    });
+
+    const opusModel = await input({
+      message: "Enter the Opus model name:",
+      validate: (value) => (value.trim() ? true : "Opus model is required"),
+    });
+
+    const useSameForSonnet = await confirm({
+      message: `Use "${opusModel}" for Sonnet model as well?`,
+      default: true,
+    });
+
+    let sonnetModel = opusModel;
+    if (!useSameForSonnet) {
+      sonnetModel = await input({
+        message: "Enter the Sonnet model name:",
+        validate: (value) => (value.trim() ? true : "Sonnet model is required"),
+      });
     }
+
+    const useSameForHaiku = await confirm({
+      message: `Use "${opusModel}" for Haiku model as well?`,
+      default: true,
+    });
+
+    let haikuModel = opusModel;
+    if (!useSameForHaiku) {
+      haikuModel = await input({
+        message: "Enter the Haiku model name:",
+        validate: (value) => (value.trim() ? true : "Haiku model is required"),
+      });
+    }
+
+    const configObject = {
+      alwaysThinkingEnabled: true,
+      env: {
+        ANTHROPIC_AUTH_TOKEN: authToken,
+        ANTHROPIC_BASE_URL: baseUrl,
+        API_TIMEOUT_MS: "3000000",
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: haikuModel,
+        ANTHROPIC_DEFAULT_SONNET_MODEL: sonnetModel,
+        ANTHROPIC_DEFAULT_OPUS_MODEL: opusModel,
+      },
+    };
+
+    initialContent = JSON.stringify(configObject, null, 2);
+  } else {
+    // Copy from existing config
+    const content = safeReadFile(initChoice.path);
+    if (content === null) {
+      return null;
+    }
+    initialContent = content;
   }
 
   if (!safeWriteFile(configPath, initialContent)) {
