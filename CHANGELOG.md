@@ -1,5 +1,11 @@
 # claude-code-toggle
 
+## 1.0.4
+
+### Patch Changes
+
+- 47fecba: Add back navigation
+
 ## 1.0.3
 
 ### Patch Changes
